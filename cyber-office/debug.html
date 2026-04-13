@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>X5 Debug - Self-contained</title>
+<style>
+*{margin:0;padding:0}
+body{background:#111;color:#0f0;font-family:monospace;font-size:14px;overflow-x:hidden}
+#log{margin:10px;padding:10px;background:rgba(0,0,0,0.85);border:1px solid #333;border-radius:4px;min-height:60px}
+.l{margin:3px 0;padding:2px 6px;border-left:3px solid}
+.l.info{border-color:#5af;color:#5af}
+.l.ok{border-color:#0f0;color:#0f0}
+.l.err{border-color:#f55;color:#f55}
+.l.warn{border-color:#fa0;color:#fa0}
+canvas{display:block;margin:10px;border:2px solid #333}
+#fallback{display:none;padding:20px;color:#fff;font-size:20px;text-align:center;background:#333;margin:20px}
+</style>
+</head>
+<body>
+<div id="log"></div>
+<div id="fallback"></div>
+<canvas id="test1" width="400" height="150"></canvas>
+<canvas id="test2" width="400" height="150"></canvas>
+
+<script>
+// NO external dependencies - self-contained test
+var log = function(msg, type) {
+  type = type || 'info';
+  var d = document.createElement('div');
+  d.className = 'l ' + type;
+  d.textContent = msg;
+  document.getElementById('log').appendChild(d);
+  console.log('[' + type.toUpperCase() + ']', msg);
+};
+
+// TEST 1: Pure Canvas 2D (always works)
+(function() {
+  var c = document.getElementById('test1');
+  var ctx = c.getContext('2d');
+  ctx.fillStyle = '#220033';
+  ctx.fillRect(0, 0, 400, 150);
+  ctx.fillStyle = '#ff4466';
+  ctx.fillRect(50, 30, 80, 80);
+  ctx.fillStyle = '#44aaff';
+  ctx.fillRect(160, 50, 100, 60);
+  ctx.fillStyle = '#ffcc00';
+  ctx.fillRect(290, 20, 50, 50);
+  ctx.fillStyle = '#fff';
+  ctx.font = '14px monospace';
+  ctx.fillText('Canvas2D Test - Should show colors above', 10, 140);
+  log('Canvas2D 2D context: ' + (ctx ? 'OK' : 'NULL'), ctx ? 'ok' : 'err');
+})();
+
+// TEST 2: WebGL (no Three.js)
+(function() {
+  var c = document.getElementById('test2');
+  var ctx = c.getContext('webgl') || c.getContext('experimental-webgl') || c.getContext('webkit-3d');
+  log('WebGL context from #test2: ' + (ctx ? 'OK (type=' + ctx.constructor.name + ')' : 'NULL'), ctx ? 'ok' : 'err');
+  if (!ctx) {
+    log('WebGL NOT available in this browser', 'err');
+    document.getElementById('fallback').style.display = 'block';
+    document.getElementById('fallback').innerHTML = '&#9888;&#65039; 您的浏览器不支持 WebGL！<br>请用 Chrome / Edge / Safari 打开此页面。<br><br>X5 内核的 WebGL 可能被禁用或不支持。';
+    return;
+  }
+  // Try to use WebGL
+  var gl = ctx;
+  gl.clearColor(0.05, 0.02, 0.15, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  log('WebGL clearColor: OK (set bg to dark blue)', 'ok');
+  
+  // Check gl.POINTS
+  log('gl.POINTS = ' + gl.POINTS, 'info');
+  log('Max texture size: ' + gl.getParameter(gl.MAX_TEXTURE_SIZE), 'info');
+  log('Renderer: ' + gl.getParameter(gl.RENDERER), 'info');
+  log('Vendor: ' + gl.getParameter(gl.VENDOR), 'info');
+  
+  // Read back a pixel to confirm rendering
+  var px = new Uint8Array(4);
+  gl.readPixels(200, 75, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  log('Pixel at center (should be dark blue ~13,5,38): RGBA=' + Array.from(px).join(','), 'ok');
+  log('WebGL rendering works! Canvas should show dark blue background.', 'ok');
+})();
+
+// SUMMARY
+setTimeout(function() {
+  log('--- DIAGNOSTIC COMPLETE ---', 'info');
+  var fb = document.getElementById('fallback');
+  if (fb.style.display !== 'none') {
+    log('RESULT: WebGL NOT available. Use Chrome/Edge/Safari.', 'err');
+  } else {
+    log('RESULT: WebGL appears to work. Black canvas = Three.js issue.', 'warn');
+  }
+}, 1500);
+</script>
+</body>
+</html>
