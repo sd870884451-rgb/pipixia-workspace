@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#f0f0f0">
+<style>
+/* X5 Invert Fix - force light rendering in WeChat dark mode */
+html,body{color-scheme:light!important;-webkit-color-scheme:light!important}
+/* Override dark mode canvas inversion for canvas elements */
+canvas{-webkit-filter:none!important;filter:none!important}
+</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>皮皮虾 · 赛博办公室 v2.0</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;overflow:hidden;font-family:'Share Tech Mono',monospace;user-select:none;cursor:grab;}
+body.drag{cursor:grabbing;}
+canvas{display:block;}
+#loading{position:fixed;inset:0;background:linear-gradient(135deg,#01010e,#0a0a1f,#01010e);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;transition:opacity .9s;}
+#loading.out{opacity:0;pointer-events:none;}
+.lt{text-align:center;margin-bottom:32px;}
+.lt h1{font-size:26px;color:#fff;letter-spacing:6px;text-transform:uppercase;margin-bottom:6px;}
+.lt p{font-size:12px;color:#4a9eff;letter-spacing:4px;opacity:.8;}
+.lb{width:280px;height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;margin-bottom:20px;}
+#lpf{height:100%;background:linear-gradient(90deg,#4a9eff,#00d4ff);border-radius:2px;transition:width .4s;box-shadow:0 0 12px #4a9effaa;}
+.ls{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:28px;min-height:36px;}
+#lpct{font-size:32px;color:#fff;font-weight:700;letter-spacing:2px;}
+#lpst{font-size:11px;color:#4a9eff;letter-spacing:2px;}
+.enter-btn{padding:14px 40px;font-size:14px;font-family:inherit;letter-spacing:4px;background:transparent;border:1px solid #4a9eff;color:#4a9eff;cursor:pointer;text-transform:uppercase;border-radius:3px;transition:all .3s;position:relative;overflow:hidden;display:none;}
+.enter-btn:hover{background:#4a9eff22;box-shadow:0 0 20px #4a9eff55;color:#fff;border-color:#fff;}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10;display:none;}
+#hud.show{display:block;}
+#top-bar{position:absolute;top:16px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:flex-start;}
+.hl{display:flex;flex-direction:column;gap:4px;}
+.hl .title{font-size:13px;color:#4a9eff;letter-spacing:3px;}
+.hl .sub{font-size:10px;color:#ffffff44;letter-spacing:2px;}
+.hr{text-align:right;}
+.hr .time{font-size:28px;color:#fff;letter-spacing:2px;}
+.hr .status{font-size:10px;color:#00ff88;letter-spacing:2px;margin-top:2px;}
+#avatar-card{position:absolute;bottom:24px;left:20px;background:rgba(1,5,20,.85);border:1px solid #4a9eff33;padding:14px 18px;min-width:180px;}
+.av-n{font-size:14px;color:#fff;margin-bottom:4px;}
+.av-d{font-size:10px;color:#4a9eff;letter-spacing:2px;margin-bottom:8px;}
+.xp-bar{display:flex;gap:6px;align-items:center;}
+.xp-label{font-size:9px;color:#ffffff55;letter-spacing:1px;}
+.xp-pips{display:flex;gap:3px;}
+.pip{width:10px;height:10px;background:#4a9eff;border-radius:2px;box-shadow:0 0 6px #4a9eff88;}
+.pip.empty{background:#ffffff11;box-shadow:none;}
+.stats{display:flex;gap:14px;margin-top:10px;}
+.stat{display:flex;flex-direction:column;gap:2px;}
+.stat-k{font-size:9px;color:#ffffff44;}
+.stat-v{font-size:13px;color:#fff;}
+#panel{position:absolute;top:80px;right:16px;width:200px;}
+.pbox{background:rgba(1,5,20,.85);border:1px solid #4a9eff33;padding:12px;margin-bottom:8px;}
+.pbox-h{font-size:10px;color:#4a9eff;letter-spacing:2px;margin-bottom:8px;}
+.qitem{display:flex;justify-content:space-between;margin-bottom:6px;font-size:11px;}
+.qn{color:#ffffff88;}
+.qv{color:#fff;}
+.sys-item{font-size:11px;color:#ffffff66;margin-bottom:4px;}
+#minimap{position:absolute;bottom:24px;right:16px;width:140px;height:90px;background:rgba(1,5,20,.85);border:1px solid #4a9eff33;overflow:hidden;}
+#minimap canvas{width:100%!important;height:100%!important;}
+#notif{position:fixed;bottom:140px;left:50%;transform:translateX(-50%);background:rgba(1,5,20,.9);border:1px solid #4a9eff55;padding:10px 24px;font-size:12px;color:#4a9eff;letter-spacing:2px;z-index:20;transition:opacity .5s;white-space:nowrap;}
+#err-banner{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#ff444422;border:1px solid #ff4444;padding:8px 20px;font-size:12px;color:#ff6666;letter-spacing:1px;z-index:15;display:none;}
+</style>
+</head>
+<body>
+<div id="loading">
+  <div class="lt"><h1>CYBER OFFICE v2.0</h1><p>🦐 PIPI-XIA · DIGITAL WORKSPACE</p></div>
+  <div class="lb"><div id="lpf" style="width:0%"></div></div>
+  <div class="ls"><div id="lpct">0%</div><div id="lpst">准备中...</div></div>
+  <button class="enter-btn" id="enterBtn">▶ 开始工作 →</button>
+</div>
+<div id="hud">
+  <div id="top-bar">
+    <div class="hl"><div class="title">🦐 PIPI-XIA · CYBER OFFICE v2.0</div><div class="sub">AWAKE · MONITORING</div></div>
+    <div class="hr"><div class="time" id="clock">--:--:--</div><div class="status">● ONLINE</div></div>
+  </div>
+  <div id="avatar-card">
+    <div class="av-n">🦐 皮皮虾</div><div class="av-d">数字分身 · LEVEL 99 · AI AGENT</div>
+    <div class="xp-bar"><div class="xp-label">EXP</div><div class="xp-pips">
+      <div class="pip"></div><div class="pip"></div><div class="pip"></div>
+      <div class="pip"></div><div class="pip"></div><div class="pip"></div>
+      <div class="pip"></div><div class="pip"></div><div class="pip"></div>
+      <div class="pip empty"></div>
+    </div></div>
+    <div class="stats">
+      <div class="stat"><div class="stat-k">技能</div><div class="stat-v">39</div></div>
+      <div class="stat"><div class="stat-k">会话</div><div class="stat-v">1,847</div></div>
+      <div class="stat"><div class="stat-k">运行时</div><div class="stat-v">0m</div></div>
+    </div>
+  </div>
+  <div id="panel">
+    <div class="pbox"><div class="pbox-h">⚡ ACTIVE QUESTS</div>
+      <div class="qitem"><span class="qn">赛博办公室</span><span class="qv">v2.0 上线</span></div>
+      <div class="qitem"><span class="qn">3D 场景</span><span class="qv">已构建</span></div>
+      <div class="qitem"><span class="qn">AI Agent</span><span class="qv">运行中</span></div>
+    </div>
+    <div class="pbox"><div class="pbox-h">📡 SYSTEM STATUS</div>
+      <div class="sys-item">🌐 CYBER OFFICE v2.0</div>
+      <div class="sys-item">💾 POWERED BY THREE.JS</div>
+      <div class="sys-item">🦐 PIPI-XIA AI</div>
+      <div class="sys-item" id="fps-el">FPS: --</div>
+    </div>
+  </div>
+  <div id="minimap"><canvas id="minimap-canvas"></canvas></div>
+</div>
+<div id="notif"></div>
+<div id="err-banner"></div>
+
+<script src="three_bundled.js"></script>
+
+<script>
+window.__cdnErr=false;window.__sceneReady=false;window.__threeLoaded=false;
+function setLP(p,t){window._lp=p;var l=document.getElementById('lpf');if(l)l.style.width=p+'%';var c=document.getElementById('lpct');if(c)c.textContent=p+'%';var s=document.getElementById('lpst');if(s)s.textContent=t||''}
+function notif(m){var n=document.getElementById('notif');if(!n)return;n.textContent=m;n.style.opacity='1';clearTimeout(window._nt);window._nt=setTimeout(function(){n.style.opacity='0'},3500)}
+function hideLoading(){var lo=document.getElementById('loading');if(!lo)return;lo.classList.add('out');setTimeout(function(){lo.remove()},950);var h=document.getElementById('hud');if(h)h.classList.add('show')}
+window.onerror=function(msg,src,line,col,err){if(src&&(src.indexOf('three_bundled')>-1||src.indexOf('cdn.')>-1)){window.__cdnErr=true;var l=document.getElementById('lpf');if(l)l.style.background='#ff4444';setLP(100,'本地资源加载');var b=document.getElementById('enterBtn');if(b)b.style.display='block';notif('⚠️ CDN部分加载失败，进入降级模式')}return true};
+function enterOffice(){hideLoading()}
+function init(){
+  setLP(30,'初始化渲染器...');
+  console.log('[CyberOffice] init running, THREE.REVISION='+(typeof THREE!=='undefined'?THREE.REVISION:'MISSING'));
+  var renderer=null;
+  var _tc=document.createElement('canvas');var _gl=_tc.getContext('webgl')||_tc.getContext('experimental-webgl');
+  if(!_gl){var _eb=document.getElementById('err-banner');if(_eb){_eb.style.display='block';_eb.textContent='您的浏览器不支持WebGL！请用Chrome/Edge/Safari打开';}setLP(100,'WebGL不可用');return}
+  try{var _r=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});if(_r&&_r.getContext())renderer=_r;}catch(e){}
+  if(!renderer)try{var _r2=new THREE.WebGLRenderer({antialias:false});if(_r2&&_r2.getContext())renderer=_r2;}catch(e){}
+  if(!renderer){var _eb2=document.getElementById('err-banner');if(_eb2){_eb2.style.display='block';_eb2.textContent='渲染器初始化失败，请用Chrome打开！';}setLP(100,'渲染器初始化失败');return}
+  if(!renderer){var eb=document.getElementById('err-banner');if(eb){eb.style.display='block';eb.textContent='WebGL不可用，请用Chrome/Firefox打开！'}setLP(100,'渲染器初始化失败');return}
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=.8;
+  document.body.appendChild(renderer.domElement);
+  var scene=new THREE.Scene();
+  scene.fog=new THREE.FogExp2(0x01010e,.018);
+  var camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,.1,1000);
+  camera.position.set(0,5,12);
+  setLP(45,'构建办公室...');
+  var floorGeo=new THREE.PlaneGeometry(30,30);
+  var floorMat=new THREE.MeshStandardMaterial({color:0x050510,roughness:.8,metalness:.3});
+  var floor=new THREE.Mesh(floorGeo,floorMat);
+  floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+  var grid=new THREE.GridHelper(30,30,0x1a3a6a,0x0a1535);grid.position.y=.01;scene.add(grid);
+  var ceilGeo=new THREE.PlaneGeometry(30,30);
+  var ceilMat=new THREE.MeshStandardMaterial({color:0x020210,roughness:1});
+  var ceil=new THREE.Mesh(ceilGeo,ceilMat);ceil.rotation.x=Math.PI/2;ceil.position.y=7;scene.add(ceil);
+  var wallMat=new THREE.MeshStandardMaterial({color:0x080820,roughness:.9});
+  var walls=[{pos:[0,3.5,-15],rot:[0,0,0],size:[30,7,.2]},{pos:[-15,3.5,0],rot:[0,Math.PI/2,0],size:[30,7,.2]},{pos:[15,3.5,0],rot:[0,Math.PI/2,0],size:[30,7,.2]}];
+  walls.forEach(function(w){var m=new THREE.Mesh(new THREE.BoxGeometry(w.size[0],w.size[1],w.size[2]),wallMat);m.position.set(w.pos[0],w.pos[1],w.pos[2]);m.rotation.set(w.rot[0],w.rot[1],w.rot[2]);scene.add(m)});
+  var winGeo=new THREE.PlaneGeometry(8,4);var winMat=new THREE.MeshBasicMaterial({color:0x0a1530,transparent:true,opacity:.9});
+  var win=new THREE.Mesh(winGeo,winMat);win.position.set(0,4,-14.89);scene.add(win);
+  var winFrame=new THREE.Mesh(new THREE.BoxGeometry(8.2,4.2,.05),new THREE.MeshBasicMaterial({color:0x00d4ff,transparent:true,opacity:.6}));
+  winFrame.position.set(0,4,-14.87);scene.add(winFrame);
+  for(var ci=0;ci<25;ci++){var ch=1+Math.random()*6;var cb=new THREE.Mesh(new THREE.BoxGeometry(.8,ch,.3),new THREE.MeshBasicMaterial({color:Math.random()>.5?0x1a3a6a:0x0a2040}));cb.position.set(-10+ci*.9,ch/2,-15.5);scene.add(cb)}
+  var deskTop=new THREE.Mesh(new THREE.BoxGeometry(5,.12,2.2),new THREE.MeshStandardMaterial({color:0x1a2040,roughness:.5,metalness:.4}));
+  deskTop.position.set(0,2.5,0);deskTop.castShadow=true;scene.add(deskTop);
+  for(var di=0;di<4;di++){var leg=new THREE.Mesh(new THREE.BoxGeometry(.12,2.5,.12),new THREE.MeshStandardMaterial({color:0x222244,metalness:.8}));leg.position.set(-2.3+(di%2)*4.6,1.25,(di<2?-.85:.85));scene.add(leg)}
+  var monitorMat=new THREE.MeshStandardMaterial({color:0x111122,roughness:.3,metalness:.8});
+  for(var mi=0;mi<3;mi++){var screen=new THREE.Mesh(new THREE.BoxGeometry(1.8,1.1,.06),monitorMat);screen.position.set(-1.9+mi*1.9,3.3,0);scene.add(screen);var glow=new THREE.Mesh(new THREE.PlaneGeometry(1.7,1.),new THREE.MeshBasicMaterial({color:0x4a9eff,transparent:true,opacity:.15}));glow.position.set(-1.9+mi*1.9,3.3,.04);scene.add(glow)}
+  var avatarGroup=new THREE.Group();avatarGroup.position.set(0,0,1);
+  var bodyMat=new THREE.MeshStandardMaterial({color:0x4a9eff,roughness:.4,metalness:.7,emissive:0x1a3060,emissiveIntensity:.4});
+  var body=new THREE.Mesh(new THREE.CapsuleGeometry(.4,1.2,4,8),bodyMat);body.position.y=1.6;body.castShadow=true;avatarGroup.add(body);
+  var head=new THREE.Mesh(new THREE.BoxGeometry(.6,.6,.6),bodyMat);head.position.y=2.8;head.castShadow=true;avatarGroup.add(head);
+  var eyeGeo=new THREE.SphereGeometry(.08,8,8);var eyeMat=new THREE.MeshBasicMaterial({color:0x00ffff});
+  [-.15,.15].forEach(function(ex){var eye=new THREE.Mesh(eyeGeo,eyeMat);eye.position.set(ex,2.82,.31);avatarGroup.add(eye)});
+  scene.add(avatarGroup);
+  setLP(60,'添加光照...');
+  scene.add(new THREE.AmbientLight(0x0a0a20,2));
+  var mainLight=new THREE.DirectionalLight(0x6688cc,1.5);mainLight.position.set(5,10,5);mainLight.castShadow=true;mainLight.shadow.mapSize.set(2048,2048);scene.add(mainLight);
+  scene.add(new THREE.PointLight(0x00d4ff,3,12));scene.children[scene.children.length-1].position.set(0,5,-10);
+  scene.add(new THREE.PointLight(0xff4488,2,8));scene.children[scene.children.length-1].position.set(-6,4,-5);
+  scene.add(new THREE.PointLight(0x4a9eff,1.5,6));scene.children[scene.children.length-1].position.set(0,4,0);
+  setLP(70,'添加特效...');
+  var rainGeo=new THREE.BufferGeometry();var rc=2000;var rp=new Float32Array(rc*3);
+  for(var ri=0;ri<rc*3;ri+=3){rp[ri]=(Math.random()-.5)*30;rp[ri+1]=Math.random()*15;rp[ri+2]=(Math.random()-.5)*30}
+  rainGeo.setAttribute('position',new THREE.BufferAttribute(rp,3));
+  var rain=new THREE.Points(rainGeo,new THREE.PointsMaterial({color:0x4a9eff,size:.06,transparent:true,opacity:.5}));scene.add(rain);
+  var dustGeo=new THREE.BufferGeometry();var dc=300;var dp=new Float32Array(dc*3);
+  for(var di2=0;di2<dc*3;di2+=3){dp[di2]=(Math.random()-.5)*20;dp[di2+1]=Math.random()*6;dp[di2+2]=(Math.random()-.5)*20}
+  dustGeo.setAttribute('position',new THREE.BufferAttribute(dp,3));
+  var dust=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0xffffff,size:.03,transparent:true,opacity:.3}));scene.add(dust);
+  var holo=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,3,6,1,true),new THREE.MeshBasicMaterial({color:0x00d4ff,wireframe:true,transparent:true,opacity:.2}));
+  holo.position.set(-8,2,-10);scene.add(holo);
+  setLP(85,'就绪！');
+  var controls=null;if(window.OrbitControls){controls=new window.OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.05;controls.maxPolarAngle=Math.PI/2-.05;controls.minDistance=3;controls.maxDistance=30;controls.target.set(0,2,0)}
+  function updateClock(){var c=document.getElementById('clock');if(!c)return;var n=new Date();var h=String(n.getHours()).padStart(2,'0');var m=String(n.getMinutes()).padStart(2,'0');var s=String(n.getSeconds()).padStart(2,'0');c.textContent=h+':'+m+':'+s}
+  setInterval(updateClock,1000);updateClock();
+  setTimeout(function(){notif('🦐 皮皮虾赛博办公室v2.0上线！滚轮缩放·点击节点互动')},1200);
+  setLP(100,'就绪！');document.getElementById('enterBtn').style.display='block';
+  window.__sceneReady=true;window.__threeLoaded=true;
+  setTimeout(hideLoading,800);
+  var fc=0,lf=performance.now(),fps=0;var fpe=document.getElementById('fps-el');
+  function animate(){requestAnimationFrame(animate);var t=performance.now()*.001;
+    avatarGroup.rotation.y=Math.sin(t*.5)*.3;avatarGroup.position.y=Math.sin(t*1.2)*.05;
+    var rpa=rain.geometry.attributes.position.array;
+    for(var rii=1;rii<rpa.length;rii+=3){rpa[rii]-=.15;if(rpa[rii]<0)rpa[rii]=15}
+    rain.geometry.attributes.position.needsUpdate=true;
+    var dpa=dust.geometry.attributes.position.array;
+    for(var di3=1;di3<dpa.length;di3+=3){dpa[di3]+=Math.sin(t+di3)*.002;if(dpa[di3]>6)dpa[di3]=0}
+    dust.geometry.attributes.position.needsUpdate=true;
+    holo.rotation.y+=.005;holo.position.y=2+Math.sin(t)*.3;
+    if(controls)controls.update();
+    fc++;var n=performance.now();if(n-lf>1000){fps=Math.round(fc*1000/(n-lf));fc=0;lf=n;if(fpe)fpe.textContent='FPS: '+fps}
+    renderer.render(scene,camera)}
+  animate();
+  window.addEventListener('resize',function(){camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight)})}
+// Fallback if THREE never loads
+setTimeout(function(){if(!window.__sceneReady){document.getElementById('enterBtn').style.display='block';setLP(100,'部分资源加载')}},12000);
+// Auto-start watcher: poll until THREE is loaded AND init() is defined (max 5s)
+// This fixes the race condition where onload fires before init() is declared
+window.__startupTried = false;
+function __tryStart() {
+  if (window.__startupTried) return;
+  if (window.THREE && typeof init === 'function') {
+    window.__startupTried = true;
+    clearInterval(window.__startInterval);
+    init();
+  }
+}
+window.__startInterval = setInterval(__tryStart, 50);
+setTimeout(function() { clearInterval(window.__startInterval); }, 5000);
+
+</script>
+</body>
+</html>
